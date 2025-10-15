@@ -1,0 +1,20 @@
+[project]
+name = "enstock"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "iRedSC",email = "59147735+iRedSC@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "inquirerpy (>=0.3.4,<0.4.0)",
+    "google-genai (>=1.43.0,<2.0.0)",
+    "rich (>=14.2.0,<15.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
