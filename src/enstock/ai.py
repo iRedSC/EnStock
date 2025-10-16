@@ -9,8 +9,22 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=API_KEY)
 
-prompt = "Convert the following purchase order into a csv with these columns, and answer only with the raw text: SKU, UOM (EACH if not present), QUANTITY, COST"
+prompt = """
+Convert the following purchase order into a csv.
 
+Answer only with the raw text, make sure to include exact headers.
+
+Supply these columns, and use headers in your output: SKU, UOM, QUANTITY, COST
+
+If UOM is not specified, default to EACH
+
+Output Example:
+
+SKU, UOM, QUANTITY, COST
+1234, EACH, 4, 40.3
+THING-1, BOX, 2, 59.2
+
+"""
 def parse_pdf(pdf: bytes) -> str:
     response = client.models.generate_content(
         model="gemini-2.5-flash",
@@ -21,6 +35,9 @@ def parse_pdf(pdf: bytes) -> str:
             ),
             prompt,
         ],
+        config=types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
+    ),
     )
     response = response.text
     if not response:

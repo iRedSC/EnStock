@@ -1,58 +1,79 @@
-import time
-import docker
-import psycopg2
+import sqlite3
+from typing import Any, Iterable, Optional
 
-# Constants
-POSTGRES_IMAGE = "postgres:15"
-CONTAINER_NAME = "python-embedded-postgres"
-POSTGRES_USER = "user"
-POSTGRES_PASSWORD = "pass"
-POSTGRES_DB = "appdb"
-HOST_PORT = 5435
 
-client = docker.from_env()
+class Database:
+    def __init__(self, db_path: str):
+        self.db_path = db_path
 
-# Clean up any old container with the same name
-try:
-    old = client.containers.get(CONTAINER_NAME)
-    print("Removing old container...")
-    old.remove(force=True)
-except docker.errors.NotFound:
-    pass
+    def connect(self) -> sqlite3.Connection:
+        """Create and return a database connection."""
+        return sqlite3.connect(self.db_path)
 
-# Run Postgres container
-print("Starting new Postgres container...")
-container = client.containers.run(
-    POSTGRES_IMAGE,
-    name=CONTAINER_NAME,
-    detach=True,
-    ports={"5432/tcp": HOST_PORT},
-    environment={
-        "POSTGRES_USER": POSTGRES_USER,
-        "POSTGRES_PASSWORD": POSTGRES_PASSWORD,
-        "POSTGRES_DB": POSTGRES_DB,
-    },
-)
+    def execute(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+        *,
+        commit: bool = True,
+    ) -> None:
+        """Execute a write/update/delete statement."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            if params:
+                cur.execute(query, params)
+            else:
+                cur.execute(query)
+            if commit:
+                conn.commit()
 
-# Wait for Postgres to be ready
-time.sleep(5)
+    def fetchall(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+    ) -> list[tuple]:
+        """Run a SELECT and return all rows."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params or [])
+            return cur.fetchall()
 
-# Connect and test it
-dsn = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:{HOST_PORT}/{POSTGRES_DB}"
-print("Connecting to:", dsn)
+    def fetchone(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+    ) -> Optional[tuple]:
+        """Run a SELECT and return one row."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params or [])
+            return cur.fetchone()
 
-with psycopg2.connect(dsn) as conn:
-    with conn.cursor() as cur:
-        cur.execute("CREATE TABLE IF NOT EXISTS test(id SERIAL PRIMARY KEY, name TEXT)")
-        cur.execute("INSERT INTO test(name) VALUES ('Managed by Python')")
-        conn.commit()
+def init_db(db: Database):
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS brands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        abbv TEXT NOT NULL
+    );
+    """)
 
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM test")
-        print("Rows:", cur.fetchall())
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS suppliers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        brand INTEGER,
+        FOREIGN KEY (brand) REFERENCES brands(id)
+    );
+    """)
 
-# Optionally stop and remove container when done
-print("Stopping and removing container...")
-container.stop()
-container.remove()
-print("Done ✅")
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS sku_maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        spn TEXT NOT NULL,
+        sku TEXT NOT NULL
+
+    );
+    """)
+
+    #        FOREIGN KEY (supplier) REFERENCES suppliers(id)
