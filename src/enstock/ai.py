@@ -16,7 +16,9 @@ Answer only with the raw text, make sure to include exact headers.
 
 Supply these columns, and use headers in your output: SKU, UOM, QUANTITY, COST
 
-If UOM or COST is not specified, leave blank,
+If UOM or COST is not specified, leave blank. Don't wrap in ```csv``` as that will break the system.
+
+Make sure to include CSV header titles in your output, as not doing so will break the system.
 
 Output Example:
 

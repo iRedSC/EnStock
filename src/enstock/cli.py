@@ -10,7 +10,7 @@ from InquirerPy.validator import EmptyInputValidator
 def get_spinner():
     return Progress(SpinnerColumn(),TextColumn("[progress.description]{task.description}"),transient=True,)
 
-def map_sku(sku: str, brand: Brand | None):
+def map_sku(sku: str, brand: Brand | None) -> str:
     formatted_sku = sku.upper().split()[0]
     prefix = ""
     if brand:
@@ -27,18 +27,19 @@ def map_sku(sku: str, brand: Brand | None):
         result = f"{prefix}{formatted_sku}"
     elif type(result) == str:
         result = result.upper()
-    return result
+    return result # type: ignore
 
 
-def request_new_uom(uom: str):
+def request_new_uom(uom: str, sku: str):
     new_uom = [
         {
             "name": "uom_amount",
             "type": "number",
-            "message": f"How many of EACH in {uom}?",
-            "min_allowed": -2,
-            "max_allowed": 10,
-            "validate": EmptyInputValidator(),
+            "message": f"How many of EACH in {uom} of {sku}?",
+            "min_allowed": 1,
+            "validate": lambda result: len(result) > 0,
+            "invalid_message": "Please enter a number.",
+            "default": None,
         }
     ]
 

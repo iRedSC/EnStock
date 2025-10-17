@@ -73,7 +73,8 @@ def init_db(db: Database):
         supplier INTEGER NOT NULL,
         spn TEXT NOT NULL,
         sku TEXT NOT NULL,
-        FOREIGN KEY (supplier) REFERENCES suppliers(id)
+        FOREIGN KEY (supplier) REFERENCES suppliers(id),
+        UNIQUE (supplier, spn)
     );
                """)
                
@@ -81,6 +82,7 @@ def init_db(db: Database):
     CREATE TABLE IF NOT EXISTS uoms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     supplier INTEGER NOT NULL,
+    sku TEXT NOT NULL,
     unit TEXT NOT NULL,
     amount INTEGER NOT NULL,
     FOREIGN KEY (supplier) REFERENCES suppliers(id)

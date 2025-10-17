@@ -1,7 +1,9 @@
+import pandas as pd
 from enstock import get_purchase_order, parse_pdf, create_dataframe
 from enstock.data import get_uom
 from enstock.database import Database, init_db
 import enstock.cli as cli
+from rich import print
 
 
 # open file chooser
@@ -27,34 +29,51 @@ supplier = cli.request_supplier(db)
 brand = supplier.brand
 
 # Get current mapped SKUs
-sku_map_data = db.fetchall("SELECT * FROM sku_maps WHERE supplier = ?", (supplier.id,))
+sku_map_data = db.fetchall("SELECT spn, sku FROM sku_maps WHERE supplier = ?", (supplier.id,))
 sku_map = {}
 for row in sku_map_data:
-    sku_map[row[1]] = row[2]
+    sku_map[row[0]] = row[1]
 
-print(df)
+output_data = []
+
 
 for idx, row in df.iterrows():
     uom = row.get("UOM")
     spn = row.get("SKU")
     current_amount = row.get("QUANTITY")
+    cost = row.get("COST")
+
     if not spn:
         continue
     if spn not in sku_map:
         sku = cli.map_sku(spn, brand)
         sku_map[spn] = sku
+        db.execute("INSERT INTO sku_maps (supplier, spn, sku) VALUES (?, ?, ?)", (supplier.id, spn, sku))
     else:
-        sku = sku_map.get(spn)
+        sku: str = sku_map[spn]
     
+    if type(uom) == float:
+        uom = None
+
+    amount = current_amount
     if uom != None and uom.upper() != "EACH":
-        amount = get_uom(supplier, uom, db)
-        df.at[idx, "QUANTITY"] = int(amount) * int(current_amount) # type: ignore
+        amount = int(get_uom(supplier, sku, uom, db)) * int(current_amount) # type: ignore
 
-    db.execute("INSERT INTO sku_maps (supplier, spn, sku) VALUES (?, ?, ?)", (supplier.id, spn, sku))
+    output_data.append({
+        "SKU": sku,
+        "QUANTITY": amount,
+        "COST": cost,
+        "SHIPPING_COST": 0,
+        "NOTES": ""
+    })
+    
+        
 
-df["SKU"] = df["SKU"].map(sku_map).fillna(df["SKU"])
-df = df[df["SKU"] != "/"]
+output_df = pd.DataFrame(output_data)
 
-print(df)
+output_df = output_df[output_df["SKU"] != "/"]
 
-df.to_csv("output.csv", index=False)
+
+output_df.to_csv("output.csv", index=False)
+
+print("[green]CSV Exported. Task Complete![/]")
