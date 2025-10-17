@@ -70,10 +70,19 @@ def init_db(db: Database):
     db.execute("""
     CREATE TABLE IF NOT EXISTS sku_maps (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplier INTEGER NOT NULL,
         spn TEXT NOT NULL,
-        sku TEXT NOT NULL
-
+        sku TEXT NOT NULL,
+        FOREIGN KEY (supplier) REFERENCES suppliers(id)
     );
-    """)
-
-    #        FOREIGN KEY (supplier) REFERENCES suppliers(id)
+               """)
+               
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS uoms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier INTEGER NOT NULL,
+    unit TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    FOREIGN KEY (supplier) REFERENCES suppliers(id)
+    );
+               """)

@@ -16,13 +16,14 @@ Answer only with the raw text, make sure to include exact headers.
 
 Supply these columns, and use headers in your output: SKU, UOM, QUANTITY, COST
 
-If UOM is not specified, default to EACH
+If UOM or COST is not specified, leave blank,
 
 Output Example:
 
-SKU, UOM, QUANTITY, COST
-1234, EACH, 4, 40.3
-THING-1, BOX, 2, 59.2
+SKU,UOM,QUANTITY,COST
+1234,EACH,4,40.3
+THING-1,BOX,2,59.2
+NO-COST-1,,1,
 
 """
 def parse_pdf(pdf: bytes) -> str:
