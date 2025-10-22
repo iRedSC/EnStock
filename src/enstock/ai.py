@@ -18,6 +18,8 @@ Supply these columns, and use headers in your output: SKU, UOM, QUANTITY, COST
 
 If UOM or COST is not specified, leave blank. Don't wrap in ```csv``` as that will break the system.
 
+COST should be unit cost/price, not total amount.
+
 Make sure to include CSV header titles in your output, as not doing so will break the system.
 
 Output Example:
