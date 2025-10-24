@@ -10,6 +10,7 @@ from InquirerPy.validator import EmptyInputValidator
 def get_spinner():
     return Progress(SpinnerColumn(),TextColumn("[progress.description]{task.description}"),transient=True,)
 
+
 def map_sku(sku: str, brand: Brand | None) -> str:
     formatted_sku = sku.upper().split()[0]
     prefix = ""
@@ -46,7 +47,6 @@ def request_new_uom(uom: str, sku: str):
     result = prompt(questions=new_uom, style_override=False, style={"answermark": "green", "answered_question": "#66ffe3"})
     amount = result.get("uom_amount")
     return amount
-
 
 
 def request_new_brand(abbv: str):
@@ -88,6 +88,7 @@ def request_new_supplier():
     supplier_name: str = result.get("supplier_name") # type: ignore
     brand_abbv = result.get("brand_abbv")
     return (supplier_name, brand_abbv)
+
 
 def request_supplier(db: Database) -> Supplier:
     suppliers: list[tuple[int, str, int, str, str]] = db.fetchall("""

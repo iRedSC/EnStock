@@ -2,8 +2,7 @@ import pandas as pd
 from io import StringIO
 from enstock.database import Database
 from enstock.cli import request_new_uom
-from enstock.models import Supplier
-
+from enstock.db.models import Supplier
 
 
 def create_dataframe(csv: str):
