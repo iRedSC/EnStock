@@ -12,7 +12,7 @@ from enstock.db import models
 
 
 GET_SKU_MAP_BY_SUPPLIER = """-- name: get_sku_map_by_supplier \\:many
-SELECT spn, sku FROM sku_maps WHERE supplier = ?
+SELECT spn, sku FROM sku_maps WHERE supplier = ?1
 """
 
 
@@ -24,7 +24,7 @@ class GetSkuMapBySupplierRow:
 
 INSERT_SKU_MAP = """-- name: insert_sku_map \\:exec
 INSERT INTO sku_maps (supplier, spn, sku)
-VALUES (?, ?, ?)
+VALUES (?1, ?2, ?3)
 """
 
 

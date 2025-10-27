@@ -9,19 +9,19 @@ FROM suppliers
 LEFT JOIN brands ON suppliers.brand = brands.id;
 
 -- name: GetBrandByAbbv :one
-SELECT * FROM brands WHERE abbv = ?;
+SELECT * FROM brands WHERE abbv = :abbv;
 
 -- name: InsertBrand :one
 INSERT INTO brands (name, abbv)
-VALUES (?, ?)
+VALUES (:name, :abbv)
 RETURNING id;
 
 -- name: InsertSupplierWithBrand :one
 INSERT INTO suppliers (name, brand)
-VALUES (?, ?)
+VALUES (:name, :brand)
 RETURNING id;
 
 -- name: InsertSupplierNoBrand :one
 INSERT INTO suppliers (name, brand)
-VALUES (?, NULL)
+VALUES (:name, NULL)
 RETURNING id;

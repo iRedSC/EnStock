@@ -12,13 +12,13 @@ from enstock.db import models
 
 GET_UOM_AMOUNT = """-- name: get_uom_amount \\:one
 SELECT amount FROM uoms
-WHERE supplier = ? AND sku = ? AND unit = ?
+WHERE supplier = ?1 AND sku = ?2 AND unit = ?3
 """
 
 
 INSERT_UOM = """-- name: insert_uom \\:exec
 INSERT INTO uoms (supplier, sku, unit, amount)
-VALUES (?, ?, ?, ?)
+VALUES (?1, ?2, ?3, ?4)
 """
 
 

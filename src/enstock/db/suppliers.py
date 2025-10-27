@@ -12,7 +12,7 @@ from enstock.db import models
 
 
 GET_BRAND_BY_ABBV = """-- name: get_brand_by_abbv \\:one
-SELECT id, name, abbv FROM brands WHERE abbv = ?
+SELECT id, name, abbv FROM brands WHERE abbv = ?1
 """
 
 
@@ -39,21 +39,21 @@ class GetSuppliersWithBrandRow:
 
 INSERT_BRAND = """-- name: insert_brand \\:one
 INSERT INTO brands (name, abbv)
-VALUES (?, ?)
+VALUES (?1, ?2)
 RETURNING id
 """
 
 
 INSERT_SUPPLIER_NO_BRAND = """-- name: insert_supplier_no_brand \\:one
 INSERT INTO suppliers (name, brand)
-VALUES (?, NULL)
+VALUES (?1, NULL)
 RETURNING id
 """
 
 
 INSERT_SUPPLIER_WITH_BRAND = """-- name: insert_supplier_with_brand \\:one
 INSERT INTO suppliers (name, brand)
-VALUES (?, ?)
+VALUES (?1, ?2)
 RETURNING id
 """
 

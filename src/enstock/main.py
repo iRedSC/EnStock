@@ -1,7 +1,7 @@
 import pandas as pd
 from enstock import get_purchase_order, parse_pdf, create_dataframe
 from enstock.data import get_uom
-from enstock.database import Database, init_db
+from enstock.database import close_db, sku_maps
 import enstock.cli as cli
 from rich import print
 
@@ -21,18 +21,17 @@ with cli.get_spinner() as spinner:
 df = create_dataframe(response.upper())
 
 # Get database
-db = Database("database.db")
-init_db(db)
+
 
 # User provides supplier
-supplier = cli.request_supplier(db)
+supplier = cli.request_supplier()
 brand = supplier.brand
 
 # Get current mapped SKUs
-sku_map_data = db.fetchall("SELECT spn, sku FROM sku_maps WHERE supplier = ?", (supplier.id,))
+sku_map_data = sku_maps.get_sku_map_by_supplier(supplier=supplier.id)
 sku_map = {}
 for row in sku_map_data:
-    sku_map[row[0]] = row[1]
+    sku_map[row.spn] = row.sku
 
 output_data = []
 
@@ -48,7 +47,7 @@ for idx, row in df.iterrows():
     if spn not in sku_map:
         sku = cli.map_sku(spn, brand)
         sku_map[spn] = sku
-        db.execute("INSERT INTO sku_maps (supplier, spn, sku) VALUES (?, ?, ?)", (supplier.id, spn, sku))
+        sku_maps.insert_sku_map(supplier=supplier.id, spn=spn, sku=sku)
     else:
         sku: str = sku_map[spn]
     
@@ -68,7 +67,7 @@ for idx, row in df.iterrows():
     })
     
         
-
+close_db()
 output_df = pd.DataFrame(output_data)
 
 output_df = output_df[output_df["SKU"] != "/"]
