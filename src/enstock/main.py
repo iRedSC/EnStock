@@ -76,7 +76,7 @@ for idx, row in df.iterrows():
     })
     
         
-close_db()
+
 output_df = pd.DataFrame(output_data)
 
 output_df = output_df[output_df["SKU"] != "/"]
