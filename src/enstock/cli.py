@@ -2,9 +2,7 @@ from typing import Literal
 from InquirerPy.resolver import prompt
 from InquirerPy.base.control import Choice
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from enstock.models import Supplier, Brand
-from enstock.database import Database
-from InquirerPy.validator import EmptyInputValidator
+from enstock.db.models import Supplier, Brand, Brands, Suppliers
 
 
 def get_spinner():
@@ -30,7 +28,7 @@ def map_sku(sku: str, brand: Brand | None) -> str:
     return result # type: ignore
 
 
-def request_new_uom(uom: str, sku: str):
+def request_new_uom(uom: str, sku: str) -> str:
     new_uom = [
         {
             "name": "uom_amount",
@@ -45,7 +43,7 @@ def request_new_uom(uom: str, sku: str):
 
     result = prompt(questions=new_uom, style_override=False, style={"answermark": "green", "answered_question": "#66ffe3"})
     amount = result.get("uom_amount")
-    return amount
+    return amount # type: ignore
 
 
 
@@ -89,23 +87,13 @@ def request_new_supplier():
     brand_abbv = result.get("brand_abbv")
     return (supplier_name, brand_abbv)
 
-def request_supplier(db: Database) -> Supplier:
-    suppliers: list[tuple[int, str, int, str, str]] = db.fetchall("""
-SELECT
-    suppliers.id,
-    suppliers.name AS supplier_name,
-    brands.id AS brand_id,
-    brands.name AS brand_name,
-    brands.abbv AS brand_abbv
-FROM suppliers
-LEFT JOIN brands ON suppliers.brand = brands.id
-                            """)
-
+def request_supplier() -> Supplier:
+    suppliers: list[Supplier] = Suppliers.fetch_all()
     choose_supplier = {
         "name": "choose_supplier",
         "type": "list",
         "message": "Choose a supplier:",
-        "choices": [*[Choice(value=Supplier(supplier[0], supplier[1], Brand(supplier[2], supplier[3], supplier[4]) if supplier[2] else None), name=supplier[1]) for supplier in suppliers], Choice(value={"error": True}, name="* New")],
+        "choices": [*[Choice(value=supplier, name=supplier.name) for supplier in suppliers], Choice(value={"error": True}, name="* New")],
         "default": {"error": True},
     }
 
@@ -121,30 +109,13 @@ LEFT JOIN brands ON suppliers.brand = brands.id
     supplier_name, brand_abbv = request_new_supplier()
 
     if type(brand_abbv) == str and brand_abbv != "":
-        brand_info: tuple[int, str, str] | None = db.fetchone("SELECT * FROM brands WHERE abbv = ?", (brand_abbv,))
+        brand: Brand | None = Brands.fetch_matching_abbv(brand_abbv)
 
-        if not brand_info:
+        if not brand:
             result = request_new_brand(brand_abbv)
-            inserted_id = db.fetchone("INSERT INTO brands (name, abbv) VALUES (?, ?) RETURNING id", (result["name"], result["abbv"]))
-            
-            if inserted_id:
-                id: int = inserted_id[0]
-            else:
-                raise
+            brand = Brands.insert(result["name"], result["abbv"])
 
-            brand_info = (id, result["name"], result["abbv"])
+        return Suppliers.insert(supplier_name, brand)
 
-        brand = Brand(brand_info[0], brand_info[1], brand_info[2])
-        inserted_id = db.fetchone("INSERT INTO suppliers (name, brand) VALUES (?, ?) RETURNING id", (supplier_name, brand_info[0]))
-        if inserted_id:
-                id: int = inserted_id[0]
-        else:
-            raise
-        return Supplier(id, supplier_name, brand)
-    
-    inserted_id = db.fetchone("INSERT INTO suppliers (name, brand) VALUES (?, ?) RETURNING id", (supplier_name, None))
-    if inserted_id:
-                id: int = inserted_id[0]
-    else:
-        raise
-    return Supplier(id, supplier_name, None)
+    return Suppliers.insert(supplier_name, None)
+

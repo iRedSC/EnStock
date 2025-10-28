@@ -1,9 +1,13 @@
 import pandas as pd
 from enstock import get_purchase_order, parse_pdf, create_dataframe
 from enstock.data import get_uom
-from enstock.database import Database, init_db
+from enstock.database import Database
 import enstock.cli as cli
 from rich import print
+
+from enstock.db.models.base_model import BaseModel
+from enstock.db.models.sku_map import SkuMaps
+from enstock.db.models.uom import UOMs
 
 
 # open file chooser
@@ -22,17 +26,21 @@ df = create_dataframe(response.upper())
 
 # Get database
 db = Database("database.db")
-init_db(db)
+
+BaseModel._database = db
+SkuMaps.create()
+UOMs.create()
+
 
 # User provides supplier
-supplier = cli.request_supplier(db)
+supplier = cli.request_supplier()
 brand = supplier.brand
 
 # Get current mapped SKUs
-sku_map_data = db.fetchall("SELECT spn, sku FROM sku_maps WHERE supplier = ?", (supplier.id,))
+sku_map_data = SkuMaps.fetch_all_match_supplier(supplier)
 sku_map = {}
 for row in sku_map_data:
-    sku_map[row[0]] = row[1]
+    sku_map[row.spn] = row.sku
 
 output_data = []
 
@@ -48,7 +56,7 @@ for idx, row in df.iterrows():
     if spn not in sku_map:
         sku = cli.map_sku(spn, brand)
         sku_map[spn] = sku
-        db.execute("INSERT INTO sku_maps (supplier, spn, sku) VALUES (?, ?, ?)", (supplier.id, spn, sku))
+        SkuMaps.insert(supplier, spn, sku)
     else:
         sku: str = sku_map[spn]
     
@@ -57,7 +65,7 @@ for idx, row in df.iterrows():
 
     amount = current_amount
     if uom != None and uom.upper() != "EACH":
-        amount = int(get_uom(supplier, sku, uom, db)) * int(current_amount) # type: ignore
+        amount = int(get_uom(supplier, sku, uom)) * int(current_amount) # type: ignore
 
     output_data.append({
         "SKU": sku,
