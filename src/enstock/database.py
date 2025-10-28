@@ -1,17 +1,50 @@
 import sqlite3
 from typing import Any, Iterable, Optional
-from enstock.db import uoms, sku_maps, suppliers, models
 
-from sqlalchemy import create_engine
 
-# create a synchronous SQLite engine
-engine = create_engine("sqlite:///database.db")
+class Database:
+    def __init__(self, db_path: str):
+        self.db_path = db_path
 
-connection = engine.connect()
+    def connect(self) -> sqlite3.Connection:
+        """Create and return a database connection."""
+        return sqlite3.connect(self.db_path)
 
-uoms = uoms.Querier(connection)
-suppliers = suppliers.Querier(connection)
-sku_maps = sku_maps.Querier(connection)
+    def execute(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+        *,
+        commit: bool = True,
+    ) -> None:
+        """Execute a write/update/delete statement."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            if params:
+                cur.execute(query, params)
+            else:
+                cur.execute(query)
+            if commit:
+                conn.commit()
 
-def close_db():
-    connection.close()
+    def fetchall(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+    ) -> list[tuple]:
+        """Run a SELECT and return all rows."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params or [])
+            return cur.fetchall()
+
+    def fetchone(
+        self,
+        query: str,
+        params: Optional[sqlite3._Parameters] = None,
+    ) -> Optional[tuple]:
+        """Run a SELECT and return one row."""
+        with self.connect() as conn:
+            cur = conn.cursor()
+            cur.execute(query, params or [])
+            return cur.fetchone()

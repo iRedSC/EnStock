@@ -2,9 +2,7 @@ from typing import Literal
 from InquirerPy.resolver import prompt
 from InquirerPy.base.control import Choice
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from enstock.db.models import Supplier, Brand
-from enstock.database import suppliers as Suppliers
-from InquirerPy.validator import EmptyInputValidator
+from enstock.db.models import Supplier, Brand, Brands, Suppliers
 
 
 def get_spinner():
@@ -31,7 +29,7 @@ def map_sku(sku: str, brand: Brand | None) -> str:
     return result # type: ignore
 
 
-def request_new_uom(uom: str, sku: str):
+def request_new_uom(uom: str, sku: str) -> str:
     new_uom = [
         {
             "name": "uom_amount",
@@ -46,7 +44,8 @@ def request_new_uom(uom: str, sku: str):
 
     result = prompt(questions=new_uom, style_override=False, style={"answermark": "green", "answered_question": "#66ffe3"})
     amount = result.get("uom_amount")
-    return amount
+    return amount # type: ignore
+
 
 
 def request_new_brand(abbv: str):
@@ -89,15 +88,13 @@ def request_new_supplier():
     brand_abbv = result.get("brand_abbv")
     return (supplier_name, brand_abbv)
 
-
 def request_supplier() -> Supplier:
-    suppliers = Suppliers.get_suppliers_with_brand()
-
+    suppliers: list[Supplier] = Suppliers.fetch_all()
     choose_supplier = {
         "name": "choose_supplier",
         "type": "list",
         "message": "Choose a supplier:",
-        "choices": [*[Choice(value=Supplier(supplier.id, supplier.supplier_name, Brand(supplier.brand_id, supplier.brand_name, supplier.brand_abbv) if supplier.brand_id else None), name=supplier.supplier_name) for supplier in suppliers], Choice(value={"error": True}, name="* New")],
+        "choices": [*[Choice(value=supplier, name=supplier.name) for supplier in suppliers], Choice(value={"error": True}, name="* New")],
         "default": {"error": True},
     }
 
@@ -113,30 +110,13 @@ def request_supplier() -> Supplier:
     supplier_name, brand_abbv = request_new_supplier()
 
     if type(brand_abbv) == str and brand_abbv != "":
-        abbv_brand = Suppliers.get_brand_by_abbv(abbv=brand_abbv)
+        brand: Brand | None = Brands.fetch_matching_abbv(brand_abbv)
 
-        if not abbv_brand:
+        if not brand:
             result = request_new_brand(brand_abbv)
-            inserted_id = Suppliers.insert_brand(name=result["name"], abbv=result["abbv"])
-            
-            if inserted_id:
-                id: int = inserted_id[0]
-            else:
-                raise
+            brand = Brands.insert(result["name"], result["abbv"])
 
-            abbv_brand = Brand(id, result["name"], result["abbv"])
+        return Suppliers.insert(supplier_name, brand)
 
-        brand = abbv_brand
-        inserted_id = Suppliers.insert_supplier_with_brand(name=supplier_name, brand=abbv_brand.id)
-        if inserted_id:
-                id: int = inserted_id[0]
-        else:
-            raise
-        return Supplier(id, supplier_name, brand)
-    
-    inserted_id = Suppliers.insert_supplier_no_brand(name=supplier_name)
-    if inserted_id:
-                id: int = inserted_id[0]
-    else:
-        raise
-    return Supplier(id, supplier_name, None)
+    return Suppliers.insert(supplier_name, None)
+
