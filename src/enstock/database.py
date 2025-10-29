@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Any, Iterable, Optional
+from typing import Optional
 
 
 class Database:
