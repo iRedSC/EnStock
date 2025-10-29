@@ -5,9 +5,7 @@ from enstock.database import Database
 import enstock.cli as cli
 from rich import print
 
-from enstock.db.models.base_model import BaseModel
-from enstock.db.models.sku_map import SkuMaps
-from enstock.db.models.uom import UOMs
+from enstock.db.models import BaseModel, SkuMaps, UOMs, Brands, Suppliers
 
 
 # open file chooser
@@ -30,6 +28,8 @@ db = Database("database.db")
 BaseModel._database = db
 SkuMaps.create()
 UOMs.create()
+Brands.create()
+Suppliers.create()
 
 
 # User provides supplier
