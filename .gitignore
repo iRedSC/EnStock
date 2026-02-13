@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+sku_cost.csv
 output.csv
 *.db
 

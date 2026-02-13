@@ -17,8 +17,10 @@ def map_sku(sku: str, brand: Brand | None) -> str:
     questions = [
         {
             "type": "input",
-            "message": f"Enter mapped SKU for SPN <{sku}> (default: {prefix}{formatted_sku}):",
-            "transformer": lambda result: result.upper() or f"{prefix}{formatted_sku}"
+            "message": f"Enter mapped SKU for '{sku}'{f" (default: {f"{prefix}{formatted_sku}" if prefix else formatted_sku})" if brand else ""}:",
+            "transformer": lambda result: result.upper() or (f"{prefix}{formatted_sku}" if brand else ""),
+            "validate": lambda result: len(result) > 0,
+            "invalid_message": "Input cannot be empty.",
         }
     ]
     result = prompt(questions=questions,style_override=False, style={"answermark": "green", "answered_question": "#66ffe3"})[0]

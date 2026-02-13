@@ -1,5 +1,6 @@
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError
 
 from dotenv import load_dotenv
 import os
@@ -31,20 +32,24 @@ NO-COST-1,,1,
 
 """
 def parse_pdf(pdf: bytes) -> str:
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[
-            types.Part.from_bytes(
-                data=pdf,
-                mime_type="application/pdf",
-            ),
-            prompt,
-        ],
-        config=types.GenerateContentConfig(
-        thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
-    ),
-    )
-    response = response.text
-    if not response:
-        response = ""
-    return response
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_bytes(
+                    data=pdf,
+                    mime_type="application/pdf",
+                ),
+                prompt,
+            ],
+            config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
+        ),
+        )
+        response = response.text
+        if not response:
+            response = ""
+        return response
+    except ServerError:
+        print("Server failure, retrying..")
+        return parse_pdf(pdf)
