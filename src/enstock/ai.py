@@ -11,30 +11,51 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
 prompt = """
-Convert the following purchase order into a csv.
-
-Answer only with the raw text, make sure to include exact headers.
-
-Supply these columns, and use headers in your output: SKU, UOM, QUANTITY, COST
-
-If UOM or COST is not specified, leave blank. Don't wrap in ```csv``` as that will break the system.
-
-COST should be unit cost/price, not total amount.
-
-Make sure to include CSV header titles in your output, as not doing so will break the system.
-
-Output Example:
+Parse the following purchase order into CSV with exactly these columns:
 
 SKU,UOM,QUANTITY,COST
+
+Rules:
+
+- QUANTITY: Only include shipped amounts. Exclude backordered or unshipped items.
+
+- COST: Unit cost/price, not line totals.
+
+- UOM / COST: Leave blank if not specified.
+
+- Output raw CSV text only — include the header row, no markdown fencing, no explanation.
+
+- Use period for decimals only (e.g., 40.50). Never use commas in numbers.
+
+- Each row must have exactly 4 comma-separated values.
+
+Example output:
+
+SKU,UOM,QUANTITY,COST
+
 1234,EACH,4,40.3
+
 THING-1,BOX,2,59.2
+
 NO-COST-1,,1,
 
 """
+
+
+def _extract_text(response) -> str:
+    """Extract only text parts from response, filtering out thought_signature and other non-text parts."""
+    text_parts = []
+    if response.candidates:
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "text") and part.text:
+                text_parts.append(part.text)
+    return "".join(text_parts) if text_parts else ""
+
+
 def parse_pdf(pdf: bytes) -> str:
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3-flash-preview",
             contents=[
                 types.Part.from_bytes(
                     data=pdf,
@@ -46,7 +67,7 @@ def parse_pdf(pdf: bytes) -> str:
             thinking_config=types.ThinkingConfig(thinking_budget=0) # Disables thinking
         ),
         )
-        response = response.text
+        response = _extract_text(response)
         if not response:
             response = ""
         return response

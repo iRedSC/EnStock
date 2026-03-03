@@ -101,8 +101,9 @@ grouped = output_df.groupby("SKU").agg({
 }).reset_index()
 
 # Calculate weighted average unit price: total_cost / total_quantity
+# Round to 2 decimal places
 grouped["COST"] = grouped.apply(
-    lambda row: row["TOTAL_COST"] / row["QUANTITY"] if row["QUANTITY"] > 0 and pd.notna(row["TOTAL_COST"]) else None,
+    lambda row: round(row["TOTAL_COST"] / row["QUANTITY"], 2) if row["QUANTITY"] > 0 and pd.notna(row["TOTAL_COST"]) else None,
     axis=1
 )
 
@@ -125,10 +126,10 @@ for idx, row in output_df_with_uom.iterrows():
     if cost is not None and cost != "":
         if uom_conversion_factor is not None and uom_conversion_factor > 0:
             # Cost was per UOM, convert to per EACH
-            per_unit_cost = cost / uom_conversion_factor
+            per_unit_cost = round(cost / uom_conversion_factor, 2)
         else:
             # Cost is already per EACH
-            per_unit_cost = cost
+            per_unit_cost = round(cost, 2) if pd.notna(cost) else 0
     else:
         per_unit_cost = 0
     
@@ -140,6 +141,8 @@ for idx, row in output_df_with_uom.iterrows():
 sku_cost_df = pd.DataFrame(sku_cost_data)
 # Group by SKU and average the cost in case of duplicates
 sku_cost_df = sku_cost_df.groupby("SKU")["Cost"].mean().reset_index()
+# Round to 2 decimal places
+sku_cost_df["Cost"] = sku_cost_df["Cost"].round(2)
 sku_cost_df.to_csv("sku_cost.csv", index=False)
 
 print("[green]CSV Exported. Task Complete![/]")
